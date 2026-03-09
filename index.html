@@ -85,6 +85,12 @@
                 
                 addLog('Starting OAuth flow...', 'info');
                 
+                // Save client ID to localStorage so it persists after redirect
+                localStorage.setItem('oura_client_id', clientId);
+                if (clientSecret) {
+                    localStorage.setItem('oura_client_secret', clientSecret);
+                }
+                
                 // Redirect URL - in production this should be your app's callback
                 const redirectUri = window.location.origin + window.location.pathname;
                 addLog(`Using redirect URI: ${redirectUri}`, 'info');
@@ -107,8 +113,16 @@
             
             // Exchange authorization code for access token
             const exchangeCodeForToken = async () => {
+                addLog('--- TOKEN EXCHANGE DEBUG ---', 'info');
+                addLog(`Auth Code present: ${!!authCode}`, 'info');
+                addLog(`Client ID present: ${!!clientId}`, 'info');
+                addLog(`Client Secret present: ${!!clientSecret}`, 'info');
+                
                 if (!authCode || !clientId || !clientSecret) {
                     addLog('Missing auth code, client ID, or secret', 'error');
+                    if (!authCode) addLog('Missing: Authorization code', 'error');
+                    if (!clientId) addLog('Missing: Client ID', 'error');
+                    if (!clientSecret) addLog('Missing: Client Secret', 'error');
                     return;
                 }
                 
@@ -118,6 +132,9 @@
                     // In a real app, this should be done on your backend to protect client secret
                     // This is just for testing purposes
                     const redirectUri = window.location.origin + window.location.pathname;
+                    
+                    addLog(`Using redirect URI: ${redirectUri}`, 'info');
+                    addLog(`Using client ID: ${clientId.substring(0, 10)}...`, 'info');
                     
                     const response = await fetch('https://api.ouraring.com/oauth/token', {
                         method: 'POST',
@@ -141,6 +158,10 @@
                     const tokenData = await response.json();
                     setAccessToken(tokenData.access_token);
                     addLog('✓ Access token obtained!', 'success');
+                    
+                    // Clear saved credentials after successful connection
+                    localStorage.removeItem('oura_client_id');
+                    localStorage.removeItem('oura_client_secret');
                     
                     // Now connect with the token
                     await connectToOura(tokenData.access_token);
@@ -189,6 +210,19 @@
             
             // Check for OAuth callback on page load
             React.useEffect(() => {
+                // Restore saved credentials
+                const savedClientId = localStorage.getItem('oura_client_id');
+                const savedClientSecret = localStorage.getItem('oura_client_secret');
+                
+                if (savedClientId) {
+                    setClientId(savedClientId);
+                    addLog('Restored Client ID from previous session', 'info');
+                }
+                if (savedClientSecret) {
+                    setClientSecret(savedClientSecret);
+                    addLog('Restored Client Secret from previous session', 'info');
+                }
+                
                 const urlParams = new URLSearchParams(window.location.search);
                 const code = urlParams.get('code');
                 const error = urlParams.get('error');
