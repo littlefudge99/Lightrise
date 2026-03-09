@@ -144,30 +144,30 @@ async function loadSleepData() {
         
         // Fetch daily sleep summary
         const dailySleepResponse = await fetch(
-            `${OURA_CONFIG.apiBaseUrl}/usercollection/daily_sleep?start_date=${startDate}&end_date=${endDate}`,
+            `/api/sleep/daily?start_date=${startDate}&end_date=${endDate}`,
             {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
                 }
             }
         );
-        
+
         if (!dailySleepResponse.ok) {
             throw new Error('Failed to fetch sleep data');
         }
-        
+
         const dailySleepData = await dailySleepResponse.json();
-        
+
         // Fetch detailed sleep periods
         const sleepPeriodsResponse = await fetch(
-            `${OURA_CONFIG.apiBaseUrl}/usercollection/sleep?start_date=${startDate}&end_date=${endDate}`,
+            `/api/sleep/periods?start_date=${startDate}&end_date=${endDate}`,
             {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
                 }
             }
         );
-        
+
         if (!sleepPeriodsResponse.ok) {
             throw new Error('Failed to fetch sleep periods');
         }
