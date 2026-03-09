@@ -181,6 +181,10 @@ async function loadSleepData() {
         
         if (sleepPeriodsData.data && sleepPeriodsData.data.length > 0) {
             sleepPeriods = sleepPeriodsData.data[sleepPeriodsData.data.length - 1];
+            // Oura returns sleep_phase_5_min as a string — convert to array
+            if (typeof sleepPeriods.sleep_phase_5_min === 'string') {
+                sleepPeriods.sleep_phase_5_min = sleepPeriods.sleep_phase_5_min.split('');
+            }
         }
         
         // Render UI
