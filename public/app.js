@@ -55,7 +55,7 @@ function init() {
 
 // OAuth Flow
 function startOAuthFlow() {
-    const scope = 'daily personal email';
+    const scope = 'email personal daily heartrate tag workout session spo2 ring_configuration stress heart_health';
     const authUrl = `${OURA_CONFIG.authUrl}?` +
         `response_type=code&` +
         `client_id=${encodeURIComponent(OURA_CONFIG.clientId)}&` +
