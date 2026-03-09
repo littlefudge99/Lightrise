@@ -180,7 +180,10 @@ async function loadSleepData() {
         }
         
         if (sleepPeriodsData.data && sleepPeriodsData.data.length > 0) {
-            sleepPeriods = sleepPeriodsData.data[sleepPeriodsData.data.length - 1];
+            // Prefer the main long sleep session; fall back to longest by duration
+            sleepPeriods = sleepPeriodsData.data.find(s => s.type === 'long_sleep')
+                || sleepPeriodsData.data.reduce((a, b) =>
+                    (a.total_sleep_duration || 0) >= (b.total_sleep_duration || 0) ? a : b);
             // Oura returns sleep_phase_5_min as a string — convert to array
             if (typeof sleepPeriods.sleep_phase_5_min === 'string') {
                 sleepPeriods.sleep_phase_5_min = sleepPeriods.sleep_phase_5_min.split('');
@@ -221,7 +224,7 @@ function renderSleepSummary() {
     
     const totalSecs = sleepPeriods?.total_sleep_duration || sleepData.total_sleep_duration;
     const totalSleepHours = totalSecs ? (totalSecs / 3600).toFixed(1) : 'N/A';
-    const efficiency = sleepData.contributors?.efficiency ?? sleepData.efficiency ?? 'N/A';
+    const efficiency = sleepPeriods?.efficiency ?? sleepData.contributors?.efficiency ?? 'N/A';
     const restfulness = sleepData.contributors?.restfulness ?? sleepData.restfulness ?? 'N/A';
 
     container.innerHTML = `
