@@ -180,13 +180,26 @@ async function loadSleepData() {
         }
         
         if (sleepPeriodsData.data && sleepPeriodsData.data.length > 0) {
-            // Prefer the main long sleep session; fall back to longest by duration
-            sleepPeriods = sleepPeriodsData.data.find(s => s.type === 'long_sleep')
-                || sleepPeriodsData.data.reduce((a, b) =>
+            const day = sleepData?.day;
+            // All periods belonging to last night (same day tag)
+            const dayPeriods = day
+                ? sleepPeriodsData.data.filter(s => s.day === day)
+                : sleepPeriodsData.data;
+            const allPeriods = dayPeriods.length > 0 ? dayPeriods : sleepPeriodsData.data;
+
+            // Sum total sleep across all periods for the day
+            const totalSleepSecs = allPeriods.reduce((sum, s) => sum + (s.total_sleep_duration || 0), 0);
+
+            // Use the long_sleep period (or longest) for stage visualisation
+            sleepPeriods = allPeriods.find(s => s.type === 'long_sleep')
+                || allPeriods.reduce((a, b) =>
                     (a.total_sleep_duration || 0) >= (b.total_sleep_duration || 0) ? a : b);
+            sleepPeriods._totalSleepSecs = totalSleepSecs;
+
             // Oura returns sleep_phase_5_min as a string — convert to array
-            if (typeof sleepPeriods.sleep_phase_5_min === 'string') {
-                sleepPeriods.sleep_phase_5_min = sleepPeriods.sleep_phase_5_min.split('');
+            const raw = sleepPeriods.sleep_phase_5_min;
+            if (raw) {
+                sleepPeriods.sleep_phase_5_min = Array.isArray(raw) ? raw : String(raw).split('');
             }
         }
         
@@ -222,7 +235,7 @@ function renderSleepSummary() {
         return;
     }
     
-    const totalSecs = sleepPeriods?.total_sleep_duration || sleepData.total_sleep_duration;
+    const totalSecs = sleepPeriods?._totalSleepSecs || sleepPeriods?.total_sleep_duration || sleepData.total_sleep_duration;
     const totalSleepDisplay = totalSecs
         ? `${Math.floor(totalSecs / 3600)}h ${Math.floor((totalSecs % 3600) / 60)}m`
         : 'N/A';
