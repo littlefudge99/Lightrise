@@ -180,12 +180,9 @@ async function loadSleepData() {
         }
         
         if (sleepPeriodsData.data && sleepPeriodsData.data.length > 0) {
-            const day = sleepData?.day;
-            // All periods belonging to last night (same day tag)
-            const dayPeriods = day
-                ? sleepPeriodsData.data.filter(s => s.day === day)
-                : sleepPeriodsData.data;
-            const allPeriods = dayPeriods.length > 0 ? dayPeriods : sleepPeriodsData.data;
+            // Find the most recent day in the periods data and filter to that day only
+            const latestDay = sleepPeriodsData.data.reduce((max, s) => s.day > max ? s.day : max, '');
+            const allPeriods = sleepPeriodsData.data.filter(s => s.day === latestDay);
 
             // Sum total sleep across all periods for the day
             const totalSleepSecs = allPeriods.reduce((sum, s) => sum + (s.total_sleep_duration || 0), 0);
