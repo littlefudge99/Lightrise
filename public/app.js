@@ -272,73 +272,124 @@ const timeInBedSecs = sleepPeriods?.bedtime_start && sleepPeriods?.bedtime_end
 
 function renderSleepStages() {
     const container = document.getElementById('sleep-stages-chart');
-    
+
     if (!sleepPeriods || !sleepPeriods.sleep_phase_5_min) {
-        container.innerHTML = `
-            <div class="error-message">
-                No detailed sleep stage data available.
-            </div>
-        `;
+        container.innerHTML = `<div class="error-message">No detailed sleep stage data available.</div>`;
         return;
     }
-    
+
     const raw = sleepPeriods.sleep_phase_5_min;
     const stages = Array.isArray(raw) ? raw : String(raw).split('');
-    const stageMap = {
-        '1': { name: 'deep', color: '#4f46e5' },
-        '2': { name: 'light', color: '#10b981' },
-        '3': { name: 'rem', color: '#f59e0b' },
-        '4': { name: 'awake', color: '#ef4444' }
-    };
-    
-    // Calculate stage durations
-    const stageCounts = stages.reduce((acc, stage) => {
-        const stageName = stageMap[stage]?.name || 'unknown';
-        acc[stageName] = (acc[stageName] || 0) + 1;
-        return acc;
-    }, {});
-    
-    // Create timeline
-    const barsHTML = stages.map(stage => {
-        const stageInfo = stageMap[stage] || { name: 'unknown', color: '#94a3b8' };
-        return `<div class="stage-bar ${stageInfo.name}" title="${stageInfo.name}"></div>`;
-    }).join('');
-    
-    // Format start/end times
+
+    const stageLabel = { '1': 'Deep', '2': 'Light', '3': 'REM', '4': 'Awake' };
+    const stageColor = { '1': '#4f46e5', '2': '#10b981', '3': '#f59e0b', '4': '#ef4444' };
+    // Y position: Awake at top, Deep at bottom (hypnogram style)
+    const stageRow  = { '4': 0, '3': 1, '2': 2, '1': 3 };
+
     const bedtimeStart = new Date(sleepPeriods.bedtime_start);
-    const bedtimeEnd = new Date(sleepPeriods.bedtime_end);
-    const startTime = bedtimeStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    const endTime = bedtimeEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    
+    const n = stages.length;
+
+    // SVG layout
+    const W = 800, H = 220;
+    const mTop = 16, mRight = 16, mBottom = 44, mLeft = 56;
+    const plotW = W - mLeft - mRight;
+    const plotH = H - mTop - mBottom;
+    const xStep = plotW / n;
+    const yStep = plotH / 3;
+
+    // Stage duration totals for legend
+    const counts = stages.reduce((a, s) => { a[s] = (a[s] || 0) + 1; return a; }, {});
+
+    // Build stepped polyline points
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+        const x = mLeft + i * xStep;
+        const y = mTop + stageRow[stages[i]] * yStep;
+        if (i > 0) pts.push(`${x},${mTop + stageRow[stages[i-1]] * yStep}`);
+        pts.push(`${x},${y}`);
+    }
+    pts.push(`${mLeft + n * xStep},${mTop + stageRow[stages[n-1]] * yStep}`);
+
+    // Hourly time labels on x-axis
+    const totalMins = n * 5;
+    const xLabels = [];
+    for (let m = 0; m <= totalMins; m += 60) {
+        const t = new Date(bedtimeStart.getTime() + m * 60000);
+        xLabels.push({
+            x: mLeft + (m / 5) * xStep,
+            label: t.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+        });
+    }
+
+    // Y axis stage labels
+    const yLabels = ['Awake','REM','Light','Deep'].map((l, i) => ({
+        label: l, y: mTop + i * yStep
+    }));
+
     container.innerHTML = `
-        <div class="sleep-stages-timeline">
-            <div class="timeline-labels">
-                <span>${startTime}</span>
-                <span>${endTime}</span>
-            </div>
-            <div class="timeline-bars">
-                ${barsHTML}
-            </div>
-            <div class="stage-legend">
+        <div style="position:relative;user-select:none;">
+            <svg id="hypnogram" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
+                ${yLabels.map(l => `
+                    <line x1="${mLeft}" y1="${l.y}" x2="${W - mRight}" y2="${l.y}" stroke="#e2e8f0" stroke-width="1"/>
+                    <text x="${mLeft - 8}" y="${l.y + 4}" text-anchor="end" font-size="12" fill="#64748b">${l.label}</text>
+                `).join('')}
+                ${xLabels.map(l => `
+                    <line x1="${l.x}" y1="${mTop}" x2="${l.x}" y2="${H - mBottom}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3"/>
+                    <text x="${l.x}" y="${H - mBottom + 16}" text-anchor="middle" font-size="11" fill="#94a3b8">${l.label}</text>
+                `).join('')}
+                <polyline points="${pts.join(' ')}" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="miter"/>
+                <line id="h-line" x1="0" y1="${mTop}" x2="0" y2="${H - mBottom}" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" visibility="hidden"/>
+                <circle id="h-dot" cx="0" cy="0" r="5" fill="#fff" stroke="#6366f1" stroke-width="2" visibility="hidden"/>
+                <rect id="h-overlay" x="${mLeft}" y="${mTop}" width="${plotW}" height="${plotH}" fill="transparent" style="cursor:crosshair;"/>
+            </svg>
+            <div id="h-tip" style="position:absolute;display:none;background:rgba(15,23,42,0.92);color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
+        </div>
+        <div class="stage-legend" style="margin-top:14px;">
+            ${[['1','Deep'],['2','Light'],['3','REM'],['4','Awake']].map(([k, name]) => `
                 <div class="legend-item">
-                    <div class="legend-color" style="background: #4f46e5;"></div>
-                    <span>Deep (${stageCounts.deep * 5 || 0} min)</span>
+                    <div class="legend-color" style="background:${stageColor[k]};"></div>
+                    <span>${name} (${(counts[k] || 0) * 5} min)</span>
                 </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #10b981;"></div>
-                    <span>Light (${stageCounts.light * 5 || 0} min)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #f59e0b;"></div>
-                    <span>REM (${stageCounts.rem * 5 || 0} min)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #ef4444;"></div>
-                    <span>Awake (${stageCounts.awake * 5 || 0} min)</span>
-                </div>
-            </div>
+            `).join('')}
         </div>
     `;
+
+    // Interactivity
+    const svg     = document.getElementById('hypnogram');
+    const overlay = document.getElementById('h-overlay');
+    const hLine   = document.getElementById('h-line');
+    const hDot    = document.getElementById('h-dot');
+    const tip     = document.getElementById('h-tip');
+
+    overlay.addEventListener('mousemove', e => {
+        const rect = svg.getBoundingClientRect();
+        const svgX = (e.clientX - rect.left) * (W / rect.width);
+        const idx = Math.max(0, Math.min(n - 1, Math.floor((svgX - mLeft) / xStep)));
+        const stage = stages[idx];
+        const cx = mLeft + (idx + 0.5) * xStep;
+        const cy = mTop + stageRow[stage] * yStep;
+        const time = new Date(bedtimeStart.getTime() + idx * 5 * 60000);
+        const timeStr = time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+        hLine.setAttribute('x1', cx); hLine.setAttribute('x2', cx); hLine.setAttribute('visibility', 'visible');
+        hDot.setAttribute('cx', cx); hDot.setAttribute('cy', cy); hDot.setAttribute('stroke', stageColor[stage]); hDot.setAttribute('visibility', 'visible');
+
+        tip.style.display = 'block';
+        tip.innerHTML = `<strong>${timeStr}</strong> &nbsp;<span style="color:${stageColor[stage]}">● ${stageLabel[stage]}</span>`;
+
+        const wrap = tip.parentElement.getBoundingClientRect();
+        let lx = e.clientX - wrap.left + 14;
+        let ty = e.clientY - wrap.top - 52;
+        if (lx + 180 > wrap.width) lx -= 190;
+        tip.style.left = lx + 'px';
+        tip.style.top  = ty + 'px';
+    });
+
+    overlay.addEventListener('mouseleave', () => {
+        hLine.setAttribute('visibility', 'hidden');
+        hDot.setAttribute('visibility', 'hidden');
+        tip.style.display = 'none';
+    });
 }
 
 function analyzeOptimalWakeTime() {
