@@ -84,10 +84,12 @@
                 }
                 
                 addLog('Starting OAuth flow...', 'info');
-                addLog('You will be redirected to Oura to authorize', 'info');
                 
                 // Redirect URL - in production this should be your app's callback
                 const redirectUri = window.location.origin + window.location.pathname;
+                addLog(`Using redirect URI: ${redirectUri}`, 'info');
+                addLog('⚠️ Make sure this EXACTLY matches your Oura OAuth app settings!', 'info');
+                
                 const scope = 'daily personal email';
                 
                 // Build authorization URL
@@ -96,6 +98,8 @@
                     `client_id=${encodeURIComponent(clientId)}&` +
                     `redirect_uri=${encodeURIComponent(redirectUri)}&` +
                     `scope=${encodeURIComponent(scope)}`;
+                
+                addLog('Redirecting to Oura authorization page...', 'info');
                 
                 // Redirect to Oura authorization page
                 window.location.href = authUrl;
@@ -187,9 +191,17 @@
             React.useEffect(() => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const code = urlParams.get('code');
+                const error = urlParams.get('error');
                 
-                if (code) {
+                if (error) {
+                    addLog(`OAuth error: ${error}`, 'error');
+                    const errorDesc = urlParams.get('error_description');
+                    if (errorDesc) {
+                        addLog(`Details: ${errorDesc}`, 'error');
+                    }
+                } else if (code) {
                     addLog(`✓ Authorization code received from Oura`, 'success');
+                    addLog(`Code: ${code.substring(0, 10)}...`, 'info');
                     setAuthCode(code);
                     // Clean up URL
                     window.history.replaceState({}, document.title, window.location.pathname);
