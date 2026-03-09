@@ -232,6 +232,12 @@ function renderSleepSummary() {
         return;
     }
     
+    console.log('DEBUG sleepPeriods keys:', sleepPeriods ? Object.keys(sleepPeriods) : 'null');
+    console.log('DEBUG bedtime_start:', sleepPeriods?.bedtime_start);
+    console.log('DEBUG bedtime_end:', sleepPeriods?.bedtime_end);
+    console.log('DEBUG awake_time:', sleepPeriods?.awake_time);
+    console.log('DEBUG _totalSleepSecs:', sleepPeriods?._totalSleepSecs);
+    console.log('DEBUG total_sleep_duration:', sleepPeriods?.total_sleep_duration);
     const timeInBedSecs = sleepPeriods?.bedtime_start && sleepPeriods?.bedtime_end
         ? (new Date(sleepPeriods.bedtime_end) - new Date(sleepPeriods.bedtime_start)) / 1000
         : null;
