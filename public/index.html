@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LightRise - Smart Sleep Alarm</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-card">
+                <div class="logo">
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </div>
+                <h1>LightRise</h1>
+                <p class="subtitle">Wake up during light sleep, feel refreshed</p>
+
+                <button id="login-btn" class="btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    Connect with Oura
+                </button>
+
+                <p class="info-text">
+                    Sign in with your Oura account to access your sleep data
+                </p>
+            </div>
+        </div>
+
+        <!-- Main App Screen -->
+        <div id="app-screen" class="screen">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="header-left">
+                    <h2>LightRise</h2>
+                </div>
+                <div class="header-right">
+                    <button id="refresh-btn" class="icon-btn" title="Refresh data">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                    </button>
+                    <button id="logout-btn" class="icon-btn" title="Logout">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Sleep Summary Card -->
+                <div class="card sleep-summary">
+                    <h3>Last Night's Sleep</h3>
+                    <div id="sleep-summary-content" class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading sleep data...</p>
+                    </div>
+                </div>
+
+                <!-- Alarm Settings Card -->
+                <div class="card alarm-settings">
+                    <h3>Smart Alarm Window</h3>
+                    <p class="card-subtitle">Set your desired wake-up time range</p>
+
+                    <div class="time-inputs">
+                        <div class="time-input-group">
+                            <label>Earliest Wake Time</label>
+                            <input type="time" id="alarm-start" value="06:30">
+                        </div>
+                        <div class="time-arrow">→</div>
+                        <div class="time-input-group">
+                            <label>Latest Wake Time</label>
+                            <input type="time" id="alarm-end" value="07:30">
+                        </div>
+                    </div>
+
+                    <button id="set-alarm-btn" class="btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                        Set Smart Alarm
+                    </button>
+                </div>
+
+                <!-- Optimal Wake Time Card -->
+                <div class="card optimal-time" id="optimal-time-card" style="display: none;">
+                    <h3>Optimal Wake Time Analysis</h3>
+                    <div id="optimal-time-content"></div>
+                </div>
+
+                <!-- Sleep Stages Visualization -->
+                <div class="card sleep-stages">
+                    <h3>Sleep Stages Timeline</h3>
+                    <p class="card-subtitle">Your sleep cycles from last night</p>
+                    <div id="sleep-stages-chart" class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading sleep stages...</p>
+                    </div>
+                </div>
+
+                <!-- Info Card -->
+                <div class="card info-card">
+                    <h4>How It Works</h4>
+                    <ul>
+                        <li><strong>Light Sleep:</strong> The best time to wake up feeling refreshed</li>
+                        <li><strong>5-15 min delay:</strong> Oura Ring syncs data with a slight delay</li>
+                        <li><strong>30-60 min window:</strong> Recommended for best results</li>
+                        <li><strong>Note:</strong> This is a prototype - for a real alarm, you'd need a native iOS/Android app</li>
+                    </ul>
+                </div>
+            </main>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="spinner"></div>
+            <p>Connecting to Oura...</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
