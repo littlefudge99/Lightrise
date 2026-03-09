@@ -210,17 +210,17 @@
             
             // Check for OAuth callback on page load
             React.useEffect(() => {
+                let mounted = true;
+                
                 // Restore saved credentials
                 const savedClientId = localStorage.getItem('oura_client_id');
                 const savedClientSecret = localStorage.getItem('oura_client_secret');
                 
-                if (savedClientId) {
+                if (mounted && savedClientId) {
                     setClientId(savedClientId);
-                    addLog('Restored Client ID from previous session', 'info');
                 }
-                if (savedClientSecret) {
+                if (mounted && savedClientSecret) {
                     setClientSecret(savedClientSecret);
-                    addLog('Restored Client Secret from previous session', 'info');
                 }
                 
                 const urlParams = new URLSearchParams(window.location.search);
@@ -233,13 +233,23 @@
                     if (errorDesc) {
                         addLog(`Details: ${errorDesc}`, 'error');
                     }
-                } else if (code) {
+                } else if (code && mounted) {
                     addLog(`✓ Authorization code received from Oura`, 'success');
                     addLog(`Code: ${code.substring(0, 10)}...`, 'info');
+                    
+                    if (savedClientId) {
+                        addLog(`✓ Restored Client ID: ${savedClientId.substring(0, 10)}...`, 'info');
+                    }
+                    if (savedClientSecret) {
+                        addLog(`✓ Restored Client Secret`, 'info');
+                    }
+                    
                     setAuthCode(code);
                     // Clean up URL
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
+                
+                return () => { mounted = false; };
             }, []);
 
             // Fetch sleep sessions from Oura API
