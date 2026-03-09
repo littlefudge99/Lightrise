@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oura Smart Alarm Prototype</title>
+    <title>LightRise - Oura Smart Alarm</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -57,9 +57,7 @@
             </svg>
         );
 
-        function OuraSleepAlarmPrototype() {
-            const [clientId, setClientId] = useState('');
-            const [clientSecret, setClientSecret] = useState('');
+        function LightRiseApp() {
             const [accessToken, setAccessToken] = useState('');
             const [isConnected, setIsConnected] = useState(false);
             const [sleepData, setSleepData] = useState(null);
@@ -68,7 +66,6 @@
             const [isMonitoring, setIsMonitoring] = useState(false);
             const [logs, setLogs] = useState([]);
             const [sleepStages, setSleepStages] = useState([]);
-            const [authCode, setAuthCode] = useState('');
 
             // Add log entry
             const addLog = (message, type = 'info') => {
@@ -76,107 +73,10 @@
                 setLogs(prev => [...prev, { timestamp, message, type }].slice(-15));
             };
 
-            // Start OAuth 2.0 flow
-            const startOAuthFlow = () => {
-                if (!clientId) {
-                    addLog('Please enter your Client ID', 'error');
-                    return;
-                }
-                
-                addLog('Starting OAuth flow...', 'info');
-                
-                // Save client ID to localStorage so it persists after redirect
-                localStorage.setItem('oura_client_id', clientId);
-                if (clientSecret) {
-                    localStorage.setItem('oura_client_secret', clientSecret);
-                }
-                
-                // Redirect URL - in production this should be your app's callback
-                const redirectUri = window.location.origin + window.location.pathname;
-                addLog(`Using redirect URI: ${redirectUri}`, 'info');
-                addLog('⚠️ Make sure this EXACTLY matches your Oura OAuth app settings!', 'info');
-                
-                const scope = 'daily personal email';
-                
-                // Build authorization URL
-                const authUrl = `https://cloud.ouraring.com/oauth/authorize?` +
-                    `response_type=code&` +
-                    `client_id=${encodeURIComponent(clientId)}&` +
-                    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-                    `scope=${encodeURIComponent(scope)}`;
-                
-                addLog('Redirecting to Oura authorization page...', 'info');
-                
-                // Redirect to Oura authorization page
-                window.location.href = authUrl;
-            };
-            
-            // Exchange authorization code for access token
-            const exchangeCodeForToken = async () => {
-                addLog('--- TOKEN EXCHANGE DEBUG ---', 'info');
-                addLog(`Auth Code present: ${!!authCode}`, 'info');
-                addLog(`Client ID present: ${!!clientId}`, 'info');
-                addLog(`Client Secret present: ${!!clientSecret}`, 'info');
-                
-                if (!authCode || !clientId || !clientSecret) {
-                    addLog('Missing auth code, client ID, or secret', 'error');
-                    if (!authCode) addLog('Missing: Authorization code', 'error');
-                    if (!clientId) addLog('Missing: Client ID', 'error');
-                    if (!clientSecret) addLog('Missing: Client Secret', 'error');
-                    return;
-                }
-                
-                addLog('Exchanging authorization code for access token...', 'info');
-                
-                try {
-                    // In a real app, this should be done on your backend to protect client secret
-                    // This is just for testing purposes
-                    const redirectUri = window.location.origin + window.location.pathname;
-                    
-                    addLog(`Using redirect URI: ${redirectUri}`, 'info');
-                    addLog(`Using client ID: ${clientId.substring(0, 10)}...`, 'info');
-                    
-                    const response = await fetch('https://api.ouraring.com/oauth/token', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: new URLSearchParams({
-                            grant_type: 'authorization_code',
-                            code: authCode,
-                            redirect_uri: redirectUri,
-                            client_id: clientId,
-                            client_secret: clientSecret,
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        const error = await response.text();
-                        throw new Error(`Token exchange failed: ${response.status} - ${error}`);
-                    }
-                    
-                    const tokenData = await response.json();
-                    setAccessToken(tokenData.access_token);
-                    addLog('✓ Access token obtained!', 'success');
-                    
-                    // Clear saved credentials after successful connection
-                    localStorage.removeItem('oura_client_id');
-                    localStorage.removeItem('oura_client_secret');
-                    
-                    // Now connect with the token
-                    await connectToOura(tokenData.access_token);
-                    
-                } catch (error) {
-                    addLog(`Token exchange failed: ${error.message}`, 'error');
-                }
-            };
-            
-            // Connect to Oura API with access token
-            const connectToOura = async (token) => {
-                const useToken = token || accessToken;
-                
-                if (!useToken) {
-                    addLog('No access token available', 'error');
+            // Connect to Oura API with personal access token
+            const connectToOura = async () => {
+                if (!accessToken) {
+                    addLog('Please enter your Personal Access Token', 'error');
                     return;
                 }
                 
@@ -186,7 +86,7 @@
                     const response = await fetch('https://api.ouraring.com/v2/usercollection/personal_info', {
                         method: 'GET',
                         headers: {
-                            'Authorization': `Bearer ${useToken}`
+                            'Authorization': `Bearer ${accessToken}`
                         }
                     });
                     
@@ -198,66 +98,19 @@
                     setIsConnected(true);
                     addLog(`✓ Connected! User ID: ${userData.id || 'N/A'}`, 'success');
                     
-                    // Fetch today's sleep data
+                    // Fetch sleep data
                     addLog('Fetching recent sleep sessions...', 'info');
-                    await fetchSleepSessions(useToken);
+                    await fetchSleepSessions();
                     
                 } catch (error) {
                     addLog(`Connection failed: ${error.message}`, 'error');
                     setIsConnected(false);
                 }
             };
-            
-            // Check for OAuth callback on page load
-            React.useEffect(() => {
-                let mounted = true;
-                
-                // Restore saved credentials
-                const savedClientId = localStorage.getItem('oura_client_id');
-                const savedClientSecret = localStorage.getItem('oura_client_secret');
-                
-                if (mounted && savedClientId) {
-                    setClientId(savedClientId);
-                }
-                if (mounted && savedClientSecret) {
-                    setClientSecret(savedClientSecret);
-                }
-                
-                const urlParams = new URLSearchParams(window.location.search);
-                const code = urlParams.get('code');
-                const error = urlParams.get('error');
-                
-                if (error) {
-                    addLog(`OAuth error: ${error}`, 'error');
-                    const errorDesc = urlParams.get('error_description');
-                    if (errorDesc) {
-                        addLog(`Details: ${errorDesc}`, 'error');
-                    }
-                } else if (code && mounted) {
-                    addLog(`✓ Authorization code received from Oura`, 'success');
-                    addLog(`Code: ${code.substring(0, 10)}...`, 'info');
-                    
-                    if (savedClientId) {
-                        addLog(`✓ Restored Client ID: ${savedClientId.substring(0, 10)}...`, 'info');
-                    }
-                    if (savedClientSecret) {
-                        addLog(`✓ Restored Client Secret`, 'info');
-                    }
-                    
-                    setAuthCode(code);
-                    // Clean up URL
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
-                
-                return () => { mounted = false; };
-            }, []);
 
             // Fetch sleep sessions from Oura API
-            const fetchSleepSessions = async (token) => {
-                const useToken = token || accessToken;
-                
+            const fetchSleepSessions = async () => {
                 try {
-                    // Get sleep data for the last 3 days
                     const endDate = new Date().toISOString().split('T')[0];
                     const startDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
                     
@@ -268,7 +121,7 @@
                         {
                             method: 'GET',
                             headers: {
-                                'Authorization': `Bearer ${useToken}`
+                                'Authorization': `Bearer ${accessToken}`
                             }
                         }
                     );
@@ -286,8 +139,7 @@
                         addLog(`Sleep score: ${latestSleep.score || 'N/A'}/100`, 'info');
                         addLog(`Total sleep: ${Math.round(latestSleep.total_sleep_duration / 60)} minutes`, 'info');
                         
-                        // Now fetch detailed sleep periods (hypnogram)
-                        await fetchSleepPeriods(startDate, endDate, useToken);
+                        await fetchSleepPeriods(startDate, endDate);
                     } else {
                         addLog('⚠ No recent sleep sessions found', 'error');
                         addLog('Make sure you wore your Oura Ring last night', 'info');
@@ -299,16 +151,14 @@
             };
 
             // Fetch detailed sleep periods (includes sleep stages)
-            const fetchSleepPeriods = async (startDate, endDate, token) => {
-                const useToken = token || accessToken;
-                
+            const fetchSleepPeriods = async (startDate, endDate) => {
                 try {
                     const response = await fetch(
                         `https://api.ouraring.com/v2/usercollection/sleep?start_date=${startDate}&end_date=${endDate}`,
                         {
                             method: 'GET',
                             headers: {
-                                'Authorization': `Bearer ${useToken}`
+                                'Authorization': `Bearer ${accessToken}`
                             }
                         }
                     );
@@ -323,13 +173,10 @@
                         const latestPeriod = data.data[data.data.length - 1];
                         addLog(`✓ Sleep period details loaded`, 'success');
                         
-                        // Parse sleep stages (sleep_phase_5_min)
                         if (latestPeriod.sleep_phase_5_min) {
                             const stages = latestPeriod.sleep_phase_5_min;
                             setSleepStages(stages);
                             
-                            // Map Oura's numeric codes to stage names
-                            // 1=deep, 2=light, 3=REM, 4=awake
                             const stageMap = { '1': 'deep', '2': 'light', '3': 'REM', '4': 'awake' };
                             const stageCounts = stages.reduce((acc, stage) => {
                                 const stageName = stageMap[stage] || 'unknown';
@@ -349,24 +196,21 @@
                 }
             };
 
-            // Analyze current/recent sleep stages to find optimal wake time
+            // Analyze sleep stages
             const analyzeSleepStages = () => {
                 if (!sleepStages || sleepStages.length === 0) {
                     addLog('No sleep stage data to analyze', 'error');
                     return;
                 }
 
-                // Map numeric stages to names: 1=deep, 2=light, 3=REM, 4=awake
                 const stageMap = { '1': 'deep', '2': 'light', '3': 'REM', '4': 'awake' };
                 
                 addLog('--- SLEEP STAGE ANALYSIS ---', 'info');
                 
-                // Show last 12 intervals (last hour)
                 const recentStages = sleepStages.slice(-12);
                 const stageNames = recentStages.map(s => stageMap[s] || '?').join(' → ');
                 addLog(`Last hour: ${stageNames}`, 'info');
                 
-                // Check if currently in light sleep
                 const currentStageNum = sleepStages[sleepStages.length - 1];
                 const currentStageName = stageMap[currentStageNum] || 'unknown';
                 
@@ -377,15 +221,14 @@
                 });
                 
                 if (currentStageName === 'light') {
-                    addLog('✓ OPTIMAL WAKE TIME: Currently in LIGHT sleep!', 'success');
+                    addLog('✓ OPTIMAL WAKE TIME: Last recorded stage was LIGHT sleep!', 'success');
                 } else if (currentStageName === 'awake') {
                     addLog('✓ Already awake - good time to wake up!', 'success');
                 } else {
-                    addLog(`Currently in ${currentStageName.toUpperCase()} sleep - not optimal`, 'info');
+                    addLog(`Last recorded stage was ${currentStageName.toUpperCase()} sleep - not optimal`, 'info');
                 }
             };
 
-            // Real-time monitoring simulation
             const startMonitoring = () => {
                 if (!isConnected) {
                     addLog('Please connect to Oura API first', 'error');
@@ -402,7 +245,6 @@
                 addLog(`Alarm window: ${alarmWindow.start} - ${alarmWindow.end}`, 'info');
                 addLog('NOTE: Real implementation would poll API every 5-10 min', 'info');
                 
-                // For demo: analyze current stage
                 analyzeSleepStages();
             };
 
@@ -419,104 +261,49 @@
                             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
                                 <h1 className="text-3xl font-bold flex items-center gap-3">
                                     <Moon />
-                                    Oura Smart Alarm - Real API Integration
+                                    LightRise - Smart Alarm Prototype
                                 </h1>
-                                <p className="mt-2 text-indigo-100">Connect to your Oura Ring and test real-time sleep data</p>
+                                <p className="mt-2 text-indigo-100">Test your Oura Ring sleep data for optimal wake times</p>
                             </div>
 
                             {/* API Connection */}
                             <div className="p-6 border-b border-gray-200">
                                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                                     <Activity />
-                                    Step 1: Connect to Oura API (OAuth 2.0)
+                                    Step 1: Connect with Personal Access Token
                                 </h2>
-                                
-                                {!authCode && !isConnected && (
-                                    <div>
-                                        <div className="grid grid-cols-2 gap-3 mb-3">
-                                            <input
-                                                type="text"
-                                                placeholder="Client ID"
-                                                value={clientId}
-                                                onChange={(e) => setClientId(e.target.value)}
-                                                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                            />
-                                            <input
-                                                type="password"
-                                                placeholder="Client Secret"
-                                                value={clientSecret}
-                                                onChange={(e) => setClientSecret(e.target.value)}
-                                                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                            />
-                                        </div>
+                                <div className="flex gap-3 mb-3">
+                                    <input
+                                        type="password"
+                                        placeholder="Paste your Personal Access Token"
+                                        value={accessToken}
+                                        onChange={(e) => setAccessToken(e.target.value)}
+                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        disabled={isConnected}
+                                    />
+                                    <button
+                                        onClick={connectToOura}
+                                        disabled={isConnected}
+                                        className={`px-6 py-2 rounded-lg font-medium ${
+                                            isConnected
+                                                ? 'bg-green-500 text-white cursor-not-allowed'
+                                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                        }`}
+                                    >
+                                        {isConnected ? '✓ Connected' : 'Connect'}
+                                    </button>
+                                    {isConnected && (
                                         <button
-                                            onClick={startOAuthFlow}
-                                            disabled={!clientId}
-                                            className={`w-full px-6 py-3 rounded-lg font-medium ${
-                                                !clientId
-                                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                            }`}
+                                            onClick={fetchSleepSessions}
+                                            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
                                         >
-                                            🔐 Authorize with Oura
+                                            🔄 Refresh
                                         </button>
-                                    </div>
-                                )}
-                                
-                                {authCode && !isConnected && (
-                                    <div>
-                                        <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                                            <p className="text-sm text-green-800">
-                                                ✓ Authorization code received! Now enter your Client Secret to complete the connection.
-                                            </p>
-                                        </div>
-                                        <input
-                                            type="password"
-                                            placeholder="Client Secret"
-                                            value={clientSecret}
-                                            onChange={(e) => setClientSecret(e.target.value)}
-                                            className="w-full px-4 py-2 mb-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        />
-                                        <button
-                                            onClick={exchangeCodeForToken}
-                                            disabled={!clientSecret}
-                                            className={`w-full px-6 py-3 rounded-lg font-medium ${
-                                                !clientSecret
-                                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-green-600 text-white hover:bg-green-700'
-                                            }`}
-                                        >
-                                            Complete Connection
-                                        </button>
-                                    </div>
-                                )}
-                                
-                                {isConnected && (
-                                    <div className="flex gap-3">
-                                        <div className="flex-1 px-4 py-3 bg-green-50 border border-green-300 rounded-lg text-green-800 font-medium">
-                                            ✓ Connected to Oura
-                                        </div>
-                                        <button
-                                            onClick={() => fetchSleepSessions()}
-                                            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
-                                        >
-                                            🔄 Refresh Data
-                                        </button>
-                                    </div>
-                                )}
-                                
-                                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                    <p className="text-sm text-blue-900 mb-2">
-                                        <strong>Get your OAuth credentials:</strong>
-                                    </p>
-                                    <ol className="text-sm text-blue-800 space-y-1 ml-4 list-decimal">
-                                        <li>Visit <a href="https://cloud.ouraring.com/oauth/applications" target="_blank" rel="noopener noreferrer" className="underline font-medium">cloud.ouraring.com/oauth/applications</a></li>
-                                        <li>Create a new application</li>
-                                        <li>Set redirect URI to: <code className="bg-blue-100 px-1 rounded">{window.location.origin + window.location.pathname}</code></li>
-                                        <li>Copy your Client ID and Client Secret</li>
-                                    </ol>
-                                    <p className="text-xs text-blue-700 mt-2">
-                                        ⚠️ Note: Client Secret should be kept secure. In production, OAuth token exchange should happen on a backend server.
+                                    )}
+                                </div>
+                                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <p className="text-sm text-blue-900">
+                                        <strong>You already have a token!</strong> Just paste: <code className="bg-blue-100 px-1 rounded">K4KVNZEKPHN2NUGEZVYLF3TOUBV4V23N</code>
                                     </p>
                                 </div>
                             </div>
@@ -626,17 +413,17 @@
                                 <div className={`p-6 border-b border-gray-200 ${
                                     currentStage.isOptimal ? 'bg-green-50' : 'bg-amber-50'
                                 }`}>
-                                    <h2 className="text-xl font-semibold mb-4">Current Sleep Stage Analysis</h2>
+                                    <h2 className="text-xl font-semibold mb-4">Sleep Stage Analysis</h2>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-white p-6 rounded-lg shadow">
-                                            <div className="text-sm text-gray-600">Sleep Stage</div>
+                                            <div className="text-sm text-gray-600">Last Recorded Sleep Stage</div>
                                             <div className={`text-3xl font-bold uppercase mt-1 ${
                                                 currentStage.isOptimal ? 'text-green-600' : 'text-amber-600'
                                             }`}>
                                                 {currentStage.stage}
                                             </div>
                                             <div className="mt-2 text-xs text-gray-500">
-                                                {currentStage.timestamp}
+                                                From last night's session
                                             </div>
                                         </div>
                                         <div className="bg-white p-6 rounded-lg shadow">
@@ -644,12 +431,12 @@
                                             <div className={`text-lg font-bold mt-1 ${
                                                 currentStage.isOptimal ? 'text-green-600' : 'text-amber-600'
                                             }`}>
-                                                {currentStage.isOptimal ? '✓ Optimal Time!' : '✗ Not Ideal'}
+                                                {currentStage.isOptimal ? '✓ Was Optimal!' : '✗ Was Not Ideal'}
                                             </div>
                                             <div className="mt-2 text-sm text-gray-600">
                                                 {currentStage.isOptimal 
-                                                    ? 'Great time to wake up with minimal grogginess'
-                                                    : 'Wait for light sleep or awake stage'}
+                                                    ? 'Ended in light sleep - great wake time'
+                                                    : 'Ended in deep/REM - would have felt groggy'}
                                             </div>
                                         </div>
                                     </div>
@@ -661,7 +448,7 @@
                                 <h2 className="text-xl font-semibold mb-4">Activity Log</h2>
                                 <div className="bg-gray-900 rounded-lg p-4 h-80 overflow-y-auto font-mono text-sm">
                                     {logs.length === 0 ? (
-                                        <div className="text-gray-500">No activity yet. Enter your API key and click Connect.</div>
+                                        <div className="text-gray-500">Paste your access token above and click Connect...</div>
                                     ) : (
                                         logs.map((log, idx) => (
                                             <div key={idx} className={`mb-1 ${
@@ -676,7 +463,7 @@
                                 </div>
                             </div>
 
-                            {/* API Viability Assessment */}
+                            {/* Viability Assessment */}
                             <div className="p-6 bg-gradient-to-r from-amber-50 to-orange-50 border-t border-amber-200">
                                 <h3 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
                                     <AlertCircle />
@@ -704,7 +491,7 @@
                                 </div>
                                 <div className="mt-4 p-4 bg-white rounded-lg border-l-4 border-amber-500">
                                     <p className="text-sm text-gray-800">
-                                        <strong>Verdict:</strong> Technically feasible but with compromises. The 5-15 minute delay means you'd need a 30-60 minute alarm window to reliably catch light sleep. Best used for "gentle wake-up" rather than "exact optimal moment." Consider pairing with device sensors (accelerometer) for better real-time detection.
+                                        <strong>Verdict:</strong> Technically feasible but with compromises. The 5-15 minute delay means you'd need a 30-60 minute alarm window to reliably catch light sleep. Best used for "gentle wake-up" rather than "exact optimal moment."
                                     </p>
                                 </div>
                             </div>
@@ -714,7 +501,7 @@
             );
         }
 
-        ReactDOM.render(<OuraSleepAlarmPrototype />, document.getElementById('root'));
+        ReactDOM.render(<LightRiseApp />, document.getElementById('root'));
     </script>
 </body>
 </html>
