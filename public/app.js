@@ -223,7 +223,9 @@ function renderSleepSummary() {
     }
     
     const totalSecs = sleepPeriods?.total_sleep_duration || sleepData.total_sleep_duration;
-    const totalSleepHours = totalSecs ? (totalSecs / 3600).toFixed(1) : 'N/A';
+    const totalSleepDisplay = totalSecs
+        ? `${Math.floor(totalSecs / 3600)}h ${Math.floor((totalSecs % 3600) / 60)}m`
+        : 'N/A';
     const efficiency = sleepPeriods?.efficiency ?? sleepData.contributors?.efficiency ?? 'N/A';
     const restfulness = sleepData.contributors?.restfulness ?? sleepData.restfulness ?? 'N/A';
 
@@ -235,7 +237,7 @@ function renderSleepSummary() {
             </div>
             <div class="stat-box">
                 <div class="stat-label">Total Sleep</div>
-                <div class="stat-value time">${totalSleepHours !== 'N/A' ? totalSleepHours + 'h' : 'N/A'}</div>
+                <div class="stat-value time">${totalSleepDisplay}</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Efficiency</div>
