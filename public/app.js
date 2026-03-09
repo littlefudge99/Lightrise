@@ -300,15 +300,15 @@ function renderSleepStages() {
     // Stage duration totals for legend
     const counts = stages.reduce((a, s) => { a[s] = (a[s] || 0) + 1; return a; }, {});
 
-    // Build stepped polyline points
-    const pts = [];
-    for (let i = 0; i < n; i++) {
-        const x = mLeft + i * xStep;
-        const y = mTop + stageRow[stages[i]] * yStep;
-        if (i > 0) pts.push(`${x},${mTop + stageRow[stages[i-1]] * yStep}`);
-        pts.push(`${x},${y}`);
+    // Group consecutive same-stage runs for colored segments
+    const runs = [];
+    let runStart = 0;
+    for (let i = 1; i <= n; i++) {
+        if (i === n || stages[i] !== stages[runStart]) {
+            runs.push({ stage: stages[runStart], from: runStart, to: i });
+            runStart = i;
+        }
     }
-    pts.push(`${mLeft + n * xStep},${mTop + stageRow[stages[n-1]] * yStep}`);
 
     // Hourly time labels on x-axis
     const totalMins = n * 5;
@@ -326,9 +326,25 @@ function renderSleepStages() {
         label: l, y: mTop + i * yStep
     }));
 
+    // Build colored SVG paths: horizontal segment + vertical transition to next run
+    const segmentsSVG = runs.map((run, ri) => {
+        const x1 = mLeft + run.from * xStep;
+        const x2 = mLeft + run.to * xStep;
+        const y  = mTop + stageRow[run.stage] * yStep;
+        const color = stageColor[run.stage];
+        // Horizontal segment for this run
+        let path = `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${color}" stroke-width="3" stroke-linecap="round"/>`;
+        // Vertical transition down/up to next run
+        if (ri < runs.length - 1) {
+            const nextY = mTop + stageRow[runs[ri + 1].stage] * yStep;
+            path += `<line x1="${x2}" y1="${y}" x2="${x2}" y2="${nextY}" stroke="${color}" stroke-width="3"/>`;
+        }
+        return path;
+    }).join('');
+
     container.innerHTML = `
-        <div style="position:relative;user-select:none;">
-            <svg id="hypnogram" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
+        <div style="position:relative;user-select:none;overflow:visible;">
+            <svg id="hypnogram" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible;">
                 ${yLabels.map(l => `
                     <line x1="${mLeft}" y1="${l.y}" x2="${W - mRight}" y2="${l.y}" stroke="#e2e8f0" stroke-width="1"/>
                     <text x="${mLeft - 8}" y="${l.y + 4}" text-anchor="end" font-size="12" fill="#64748b">${l.label}</text>
@@ -337,9 +353,9 @@ function renderSleepStages() {
                     <line x1="${l.x}" y1="${mTop}" x2="${l.x}" y2="${H - mBottom}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3"/>
                     <text x="${l.x}" y="${H - mBottom + 16}" text-anchor="middle" font-size="11" fill="#94a3b8">${l.label}</text>
                 `).join('')}
-                <polyline points="${pts.join(' ')}" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linejoin="miter"/>
+                ${segmentsSVG}
                 <line id="h-line" x1="0" y1="${mTop}" x2="0" y2="${H - mBottom}" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" visibility="hidden"/>
-                <circle id="h-dot" cx="0" cy="0" r="5" fill="#fff" stroke="#6366f1" stroke-width="2" visibility="hidden"/>
+                <circle id="h-dot" cx="0" cy="0" r="5" fill="#fff" stroke="#6366f1" stroke-width="2.5" visibility="hidden"/>
                 <rect id="h-overlay" x="${mLeft}" y="${mTop}" width="${plotW}" height="${plotH}" fill="transparent" style="cursor:crosshair;"/>
             </svg>
             <div id="h-tip" style="position:absolute;display:none;background:rgba(15,23,42,0.92);color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
