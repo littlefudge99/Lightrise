@@ -138,9 +138,9 @@ async function loadSleepData() {
     showLoading('Loading sleep data...');
     
     try {
-        // Get date range (last 3 days)
-        const endDate = new Date().toISOString().split('T')[0];
-        const startDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        // Get date range — end tomorrow to avoid boundary issues, start 7 days back
+        const endDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         
         // Fetch daily sleep summary
         const dailySleepResponse = await fetch(
@@ -180,7 +180,6 @@ async function loadSleepData() {
         }
         
         if (sleepPeriodsData.data && sleepPeriodsData.data.length > 0) {
-            console.log('DEBUG all periods:', sleepPeriodsData.data.map(s => ({ day: s.day, type: s.type, bedtime_start: s.bedtime_start, bedtime_end: s.bedtime_end })));
             // Find the most recent day in the periods data and filter to that day only
             const latestDay = sleepPeriodsData.data.reduce((max, s) => s.day > max ? s.day : max, '');
             const allPeriods = sleepPeriodsData.data.filter(s => s.day === latestDay);
@@ -233,13 +232,7 @@ function renderSleepSummary() {
         return;
     }
     
-    console.log('DEBUG sleepPeriods keys:', sleepPeriods ? Object.keys(sleepPeriods) : 'null');
-    console.log('DEBUG bedtime_start:', sleepPeriods?.bedtime_start);
-    console.log('DEBUG bedtime_end:', sleepPeriods?.bedtime_end);
-    console.log('DEBUG awake_time:', sleepPeriods?.awake_time);
-    console.log('DEBUG _totalSleepSecs:', sleepPeriods?._totalSleepSecs);
-    console.log('DEBUG total_sleep_duration:', sleepPeriods?.total_sleep_duration);
-    const timeInBedSecs = sleepPeriods?.bedtime_start && sleepPeriods?.bedtime_end
+const timeInBedSecs = sleepPeriods?.bedtime_start && sleepPeriods?.bedtime_end
         ? (new Date(sleepPeriods.bedtime_end) - new Date(sleepPeriods.bedtime_start)) / 1000
         : null;
     const totalSecs = timeInBedSecs
@@ -271,7 +264,8 @@ function renderSleepSummary() {
             </div>
         </div>
         <p style="color: var(--text-secondary); font-size: 14px; text-align: center;">
-            Sleep session: ${sleepData.day}
+            Night of ${sleepPeriods?.bedtime_start ? new Date(sleepPeriods.bedtime_start).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : sleepData.day}
+            ${sleepData.day !== new Date().toISOString().split('T')[0] ? ' <span style="color:#f59e0b">(API still processing last night — check back soon)</span>' : ''}
         </p>
     `;
 }
