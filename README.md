@@ -1,194 +1,232 @@
-# LightRise - Smart Sleep Alarm
+# LightRise - Vercel Deployment Guide
 
-Wake up during light sleep to feel refreshed and minimize morning grogginess using your Oura Ring data.
+## Why Vercel?
+- ✅ **Serverless functions** handle OAuth token exchange
+- ✅ **No CORS issues** - everything runs server-side
+- ✅ **Free tier** is generous
+- ✅ **Auto-deploy** from GitHub
+- ✅ **Custom domains** supported
+- ✅ **Environment variables** for secrets
 
-![LightRise](https://img.shields.io/badge/Status-Prototype-yellow) ![Oura API](https://img.shields.io/badge/Oura-API%20v2-blue)
+## Quick Deploy (5 minutes)
 
-## 🌟 Features
+### Step 1: Push to GitHub
 
-- **OAuth 2.0 Integration** - Secure login with your Oura account
-- **Sleep Data Visualization** - See your sleep score, efficiency, and detailed sleep stages
-- **Smart Alarm Analysis** - Find optimal wake times during light sleep
-- **Sleep Stages Timeline** - Visual representation of your sleep cycles
-- **Mobile-Friendly** - Responsive design works on any device
-
-## 🚀 Quick Start
-
-### 1. Update Oura OAuth App
-
-1. Go to https://cloud.ouraring.com/oauth/applications
-2. Edit your existing application
-3. Update the **Redirect URI** to match your deployment URL:
-   - For GitHub Pages: `https://YOUR-USERNAME.github.io/lightrise/`
-   - For local testing: `http://localhost:8000/`
-4. Save changes
-
-### 2. Deploy to GitHub Pages
-
-#### Option A: Upload Files via GitHub Website
-
-1. Create a new repository called `lightrise`
-2. Make it **Public**
-3. Click "uploading an existing file"
-4. Drag and drop all files:
-   - `index.html`
-   - `app.js`
-   - `styles.css`
+1. Create a new repository on GitHub: `lightrise`
+2. Upload all files from this folder:
+   - `api/` folder (contains auth/token.js)
+   - `public/` folder (contains HTML, CSS, JS)
+   - `vercel.json`
+   - `package.json`
    - `README.md`
-5. Commit changes
-6. Go to **Settings** → **Pages**
-7. Source: Deploy from branch `main`, folder `/root`
-8. Click **Save**
-9. Wait 1-2 minutes
-10. Your app will be live at: `https://YOUR-USERNAME.github.io/lightrise/`
 
-#### Option B: Use Git Command Line
+### Step 2: Deploy to Vercel
 
-```bash
-# Create repository on GitHub first, then:
-git clone https://github.com/YOUR-USERNAME/lightrise.git
-cd lightrise
+1. Go to https://vercel.com
+2. Sign up with GitHub
+3. Click "New Project"
+4. Import your `lightrise` repository
+5. **Important:** Add environment variables:
+   - `OURA_CLIENT_ID`: `cd4fe21f-54d0-4d80-bfd0-b35bad347e97`
+   - `OURA_CLIENT_SECRET`: `upYyQDFWMbgrQ5zKZxpV3s2QGIvl5ZlWyyZ0ks61EHts`
+6. Click "Deploy"
+7. Wait ~1 minute
 
-# Copy all files into this directory
-# Then commit and push:
-git add .
-git commit -m "Initial commit - LightRise app"
-git push origin main
+### Step 3: Get Your URL
 
-# Enable GitHub Pages in Settings → Pages
+Vercel will give you a URL like:
+```
+https://lightrise.vercel.app
 ```
 
-### 3. Test the App
+Or:
+```
+https://lightrise-yourusername.vercel.app
+```
 
-1. Open your app URL: `https://YOUR-USERNAME.github.io/lightrise/`
+### Step 4: Update Oura Redirect URI
+
+1. Go to https://cloud.ouraring.com/oauth/applications
+2. Edit your OAuth application
+3. Set Redirect URI to: `https://lightrise.vercel.app/`
+   (or whatever URL Vercel gave you)
+4. **CRITICAL:** Include the trailing slash `/`
+5. Click "Save Application"
+
+### Step 5: Test!
+
+1. Open your Vercel URL
 2. Click "Connect with Oura"
 3. Log in with your Oura credentials
-4. Approve the permissions
-5. You'll be redirected back and see your sleep data!
+4. Approve permissions
+5. You should see your sleep data! 🎉
 
-## 📱 How to Use
+## That's It!
 
-### View Your Sleep Data
-- See your latest sleep score, total sleep time, and efficiency
-- View a detailed timeline of your sleep stages (deep, light, REM, awake)
-
-### Set Smart Alarm Window
-1. Choose your earliest wake time (e.g., 6:30 AM)
-2. Choose your latest wake time (e.g., 7:30 AM)
-3. Click "Set Smart Alarm"
-4. The app analyzes when you were in light sleep
-5. See if your last sleep session ended during optimal light sleep
-
-### Understanding the Results
-- **Light Sleep** = Best time to wake up feeling refreshed
-- **Deep/REM Sleep** = Waking during these feels groggy
-- **Awake** = Also a good time to wake up
-
-## ⚠️ Important Notes
-
-### This is a Prototype
-This web app **cannot actually set alarms**. It can only:
-- ✅ Show your sleep data
-- ✅ Analyze optimal wake times
-- ✅ Help you understand your sleep patterns
-- ❌ Cannot trigger notifications or alarms
-
-### Data Latency
-Oura Ring data has a **5-15 minute sync delay**:
-- The ring collects data locally
-- It only syncs when connected to your phone via Bluetooth
-- This means the data isn't truly "real-time"
-
-### For a Real Alarm App
-To build an actual smart alarm, you would need:
-- **Native iOS/Android app** (not a web app)
-- **Background app refresh** to poll Oura API during alarm window
-- **Local notifications** to trigger the actual alarm
-- **Bluetooth sync** to ensure ring is connected during sleep
-- **30-60 minute alarm window** to account for data delay
-
-## 🔒 Security & Privacy
-
-- Your Oura credentials are never seen by this app
-- OAuth tokens are stored securely in your browser
-- All API calls go directly to Oura's servers
-- No data is sent to third-party servers
-
-**Note:** In production, the Client Secret should be kept on a backend server, not in client-side code. This prototype includes it for ease of testing.
-
-## 🛠 Technical Details
-
-### Built With
-- **HTML5/CSS3/JavaScript** - Pure vanilla JS, no frameworks
-- **Oura API v2** - OAuth 2.0 authentication
-- **GitHub Pages** - Free hosting
-
-### API Endpoints Used
-- `GET /v2/usercollection/personal_info` - User information
-- `GET /v2/usercollection/daily_sleep` - Sleep summaries
-- `GET /v2/usercollection/sleep` - Detailed sleep stages (hypnogram)
-
-### Sleep Stages
-Oura provides sleep stage data in 5-minute intervals:
-- **1** = Deep Sleep
-- **2** = Light Sleep
-- **3** = REM Sleep
-- **4** = Awake
-
-## 📊 How It Works
-
-1. **OAuth Login** - Securely authenticate with Oura
-2. **Fetch Sleep Data** - Get last 3 days of sleep sessions
-3. **Parse Sleep Stages** - Extract 5-minute interval data
-4. **Analyze Light Sleep** - Find light sleep periods near wake time
-5. **Recommend Wake Time** - Suggest optimal wake windows
-
-## 🐛 Troubleshooting
-
-### "Failed to connect to Oura"
-- Make sure your Redirect URI exactly matches your deployment URL
-- Check that you're using the correct Client ID and Secret
-- Try clearing browser cache and cookies
-
-### "No sleep data found"
-- Make sure you wore your Oura Ring last night
-- Check that your ring synced with the Oura app
-- Try clicking the refresh button
-
-### "OAuth token exchange failed"
-- This is a CORS issue - the browser blocks the token exchange
-- Try using the Python server approach (see OAUTH_SETUP.md)
-- Or use a personal access token instead (deprecated but still works)
-
-## 🚧 Future Improvements
-
-For a production-ready smart alarm app:
-- [ ] Native mobile app (iOS/Android)
-- [ ] Real alarm notifications
-- [ ] Predictive algorithm based on sleep history
-- [ ] Integration with phone's accelerometer
-- [ ] Sleep quality trends and insights
-- [ ] Custom alarm sounds
-- [ ] Snooze with smart re-scheduling
-
-## 📄 License
-
-MIT License - Feel free to use and modify for your own projects.
-
-## 🤝 Contributing
-
-This is a personal prototype, but suggestions are welcome! Open an issue or submit a pull request.
-
-## ⭐ Show Your Support
-
-If you found this useful, give it a star on GitHub!
+No backend server to manage, no CORS issues, everything just works!
 
 ---
 
-**Disclaimer:** This app is not affiliated with or endorsed by Oura Health Ltd. It's a third-party prototype for testing the feasibility of smart alarm features using Oura API data.
+## Detailed Setup Instructions
 
-## 📞 Support
+### Setting Environment Variables in Vercel
 
-Questions or issues? Check the troubleshooting section above or open a GitHub issue.
+1. In your Vercel dashboard, click your project
+2. Go to "Settings" → "Environment Variables"
+3. Add these variables:
+   - **Name:** `OURA_CLIENT_ID`  
+     **Value:** `cd4fe21f-54d0-4d80-bfd0-b35bad347e97`
+   - **Name:** `OURA_CLIENT_SECRET`  
+     **Value:** `upYyQDFWMbgrQ5zKZxpV3s2QGIvl5ZlWyyZ0ks61EHts`
+4. Click "Save"
 
-Made with ❤️ for better mornings
+### Verify Deployment
+
+After deployment, test these URLs:
+
+1. **Main app:** `https://your-app.vercel.app/`
+2. **API endpoint:** `https://your-app.vercel.app/api/auth/token`  
+   Should return: `{"error":"Method not allowed"}` (this is correct!)
+
+### Using a Custom Domain
+
+1. In Vercel dashboard → "Settings" → "Domains"
+2. Add your custom domain
+3. Follow DNS configuration instructions
+4. Update Oura redirect URI to your custom domain
+
+---
+
+## Troubleshooting
+
+### "Failed to connect to Oura"
+
+**Check:**
+1. Environment variables are set in Vercel
+2. Redirect URI in Oura matches your Vercel URL exactly
+3. Trailing slash `/` is included in redirect URI
+
+**Fix:**
+- Redeploy after adding environment variables
+- Check browser console for actual error message
+
+### "redirect_uri_mismatch"
+
+**Problem:** Oura redirect URI doesn't match
+
+**Fix:**
+1. Get exact URL from Vercel dashboard
+2. Copy it to Oura OAuth app settings
+3. Make sure trailing `/` is included
+
+### API function not working
+
+**Check:**
+- `api/auth/token.js` is in the correct folder
+- `vercel.json` is in root directory
+- Environment variables are set
+
+---
+
+## Project Structure
+
+```
+lightrise/
+├── api/
+│   └── auth/
+│       └── token.js          # Serverless function for OAuth
+├── public/
+│   ├── index.html            # Main app
+│   ├── app.js                # Frontend logic
+│   └── styles.css            # Styling
+├── vercel.json               # Vercel configuration
+├── package.json              # Dependencies
+└── README.md                 # Documentation
+```
+
+---
+
+## How It Works
+
+1. **User clicks "Connect with Oura"**
+   - Frontend redirects to Oura's authorization page
+
+2. **User approves permissions**
+   - Oura redirects back with authorization code
+
+3. **Frontend calls `/api/auth/token`**
+   - Vercel serverless function exchanges code for access token
+   - Client secret stays secure on server
+
+4. **Token returned to frontend**
+   - Frontend stores token in localStorage
+   - Makes API calls directly to Oura with token
+
+5. **Sleep data displayed**
+   - App fetches and visualizes sleep stages
+
+---
+
+## Advantages Over GitHub Pages
+
+| Feature | GitHub Pages | Vercel |
+|---------|-------------|--------|
+| Static hosting | ✅ | ✅ |
+| Serverless functions | ❌ | ✅ |
+| Environment variables | ❌ | ✅ |
+| OAuth token exchange | ❌ CORS issues | ✅ Works perfectly |
+| Auto-deploy | ✅ | ✅ |
+| Custom domains | ✅ | ✅ |
+| Free tier | ✅ | ✅ Better limits |
+
+---
+
+## Next Steps
+
+After successful deployment:
+
+1. **Test thoroughly** - Try different alarm windows
+2. **Share with friends** - Get feedback
+3. **Monitor usage** - Check Vercel analytics
+4. **Add features** - Sleep trends, notifications, etc.
+
+---
+
+## Going to Production
+
+For a real production app:
+
+1. **Add Supabase** (if you want)
+   - User accounts and profiles
+   - Store sleep history
+   - User preferences
+
+2. **Add monitoring**
+   - Sentry for error tracking
+   - Analytics for user behavior
+
+3. **Native mobile app**
+   - React Native or Swift/Kotlin
+   - Real alarm notifications
+   - Background sync
+
+---
+
+## Need Help?
+
+- Vercel Discord: https://vercel.com/discord
+- Vercel Docs: https://vercel.com/docs
+- This is way easier than the GitHub Pages approach! 🎉
+
+---
+
+## Cost
+
+**Free tier includes:**
+- 100 GB bandwidth/month
+- Unlimited serverless function executions
+- Unlimited API requests
+- Free SSL certificate
+- Analytics
+
+This should be more than enough for personal use!

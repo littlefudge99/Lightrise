@@ -1,10 +1,8 @@
 // Oura OAuth Configuration
 const OURA_CONFIG = {
     clientId: 'cd4fe21f-54d0-4d80-bfd0-b35bad347e97',
-    clientSecret: 'upYyQDFWMbgrQ5zKZxpV3s2QGIvl5ZlWyyZ0ks61EHts',
-    redirectUri: window.location.origin + window.location.pathname,
+    redirectUri: window.location.origin + '/',
     authUrl: 'https://cloud.ouraring.com/oauth/authorize',
-    tokenUrl: 'https://api.ouraring.com/oauth/token',
     apiBaseUrl: 'https://api.ouraring.com/v2'
 };
 
@@ -71,23 +69,21 @@ async function handleOAuthCallback(code) {
     showLoading('Connecting to Oura...');
     
     try {
-        // Exchange code for token
-        const response = await fetch(OURA_CONFIG.tokenUrl, {
+        // Exchange code for token via Vercel serverless function
+        const response = await fetch('/api/auth/token', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/json',
             },
-            body: new URLSearchParams({
-                grant_type: 'authorization_code',
+            body: JSON.stringify({
                 code: code,
-                redirect_uri: OURA_CONFIG.redirectUri,
-                client_id: OURA_CONFIG.clientId,
-                client_secret: OURA_CONFIG.clientSecret,
+                redirectUri: OURA_CONFIG.redirectUri
             })
         });
         
         if (!response.ok) {
-            throw new Error(`Token exchange failed: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(`Token exchange failed: ${errorData.error || response.status}`);
         }
         
         const data = await response.json();
@@ -105,8 +101,9 @@ async function handleOAuthCallback(code) {
         
     } catch (error) {
         console.error('OAuth error:', error);
-        alert('Failed to connect to Oura. Please try again.');
         hideLoading();
+        alert(`Failed to connect to Oura: ${error.message}`);
+        showLogin();
     }
 }
 
