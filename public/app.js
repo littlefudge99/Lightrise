@@ -180,6 +180,7 @@ async function loadSleepData() {
         }
         
         if (sleepPeriodsData.data && sleepPeriodsData.data.length > 0) {
+            console.log('DEBUG all periods:', sleepPeriodsData.data.map(s => ({ day: s.day, type: s.type, bedtime_start: s.bedtime_start, bedtime_end: s.bedtime_end })));
             // Find the most recent day in the periods data and filter to that day only
             const latestDay = sleepPeriodsData.data.reduce((max, s) => s.day > max ? s.day : max, '');
             const allPeriods = sleepPeriodsData.data.filter(s => s.day === latestDay);
