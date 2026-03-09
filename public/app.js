@@ -183,10 +183,6 @@ async function loadSleepData() {
             // Find the most recent day in the periods data and filter to that day only
             const latestDay = sleepPeriodsData.data.reduce((max, s) => s.day > max ? s.day : max, '');
             const allPeriods = sleepPeriodsData.data.filter(s => s.day === latestDay);
-            console.log('DEBUG sleepData.day:', sleepData?.day);
-            console.log('DEBUG latestDay:', latestDay);
-            console.log('DEBUG allPeriods:', allPeriods.map(s => ({ day: s.day, type: s.type, total_sleep_duration: s.total_sleep_duration, time_in_bed: s.time_in_bed })));
-            console.log('DEBUG dailySleepData last entry:', JSON.stringify(sleepData));
 
             // Sum total sleep across all periods for the day
             const totalSleepSecs = allPeriods.reduce((sum, s) => sum + (s.total_sleep_duration || 0), 0);
@@ -236,7 +232,12 @@ function renderSleepSummary() {
         return;
     }
     
-    const totalSecs = sleepPeriods?._totalSleepSecs || sleepPeriods?.total_sleep_duration || sleepData.total_sleep_duration;
+    const timeInBedSecs = sleepPeriods?.bedtime_start && sleepPeriods?.bedtime_end
+        ? (new Date(sleepPeriods.bedtime_end) - new Date(sleepPeriods.bedtime_start)) / 1000
+        : null;
+    const totalSecs = timeInBedSecs
+        ? timeInBedSecs - (sleepPeriods.awake_time || 0)
+        : sleepPeriods?._totalSleepSecs || sleepPeriods?.total_sleep_duration;
     const totalSleepDisplay = totalSecs
         ? `${Math.floor(totalSecs / 3600)}h ${Math.floor((totalSecs % 3600) / 60)}m`
         : 'N/A';
