@@ -258,7 +258,8 @@ function renderSleepStages() {
         return;
     }
     
-    const stages = sleepPeriods.sleep_phase_5_min;
+    const raw = sleepPeriods.sleep_phase_5_min;
+    const stages = Array.isArray(raw) ? raw : String(raw).split('');
     const stageMap = {
         '1': { name: 'deep', color: '#4f46e5' },
         '2': { name: 'light', color: '#10b981' },
@@ -324,7 +325,8 @@ function analyzeOptimalWakeTime() {
     
     const alarmStart = document.getElementById('alarm-start').value;
     const alarmEnd = document.getElementById('alarm-end').value;
-    const stages = sleepPeriods.sleep_phase_5_min;
+    const rawStages = sleepPeriods.sleep_phase_5_min;
+    const stages = Array.isArray(rawStages) ? rawStages : String(rawStages).split('');
     const stageMap = { '1': 'deep', '2': 'light', '3': 'REM', '4': 'awake' };
     
     // Find light sleep periods in the last part of the sleep session
