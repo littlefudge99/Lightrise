@@ -219,8 +219,11 @@ function renderSleepSummary() {
         return;
     }
     
-    const totalSleepHours = (sleepData.total_sleep_duration / 3600).toFixed(1);
-    
+    const totalSecs = sleepPeriods?.total_sleep_duration || sleepData.total_sleep_duration;
+    const totalSleepHours = totalSecs ? (totalSecs / 3600).toFixed(1) : 'N/A';
+    const efficiency = sleepData.contributors?.efficiency ?? sleepData.efficiency ?? 'N/A';
+    const restfulness = sleepData.contributors?.restfulness ?? sleepData.restfulness ?? 'N/A';
+
     container.innerHTML = `
         <div class="sleep-summary-grid">
             <div class="stat-box">
@@ -229,15 +232,15 @@ function renderSleepSummary() {
             </div>
             <div class="stat-box">
                 <div class="stat-label">Total Sleep</div>
-                <div class="stat-value time">${totalSleepHours}h</div>
+                <div class="stat-value time">${totalSleepHours !== 'N/A' ? totalSleepHours + 'h' : 'N/A'}</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Efficiency</div>
-                <div class="stat-value efficiency">${sleepData.efficiency || 'N/A'}%</div>
+                <div class="stat-value efficiency">${efficiency !== 'N/A' ? efficiency + '%' : 'N/A'}</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Restfulness</div>
-                <div class="stat-value">${sleepData.restfulness || 'N/A'}%</div>
+                <div class="stat-value">${restfulness !== 'N/A' ? restfulness + '%' : 'N/A'}</div>
             </div>
         </div>
         <p style="color: var(--text-secondary); font-size: 14px; text-align: center;">
