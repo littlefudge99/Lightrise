@@ -183,6 +183,10 @@ async function loadSleepData() {
             // Find the most recent day in the periods data and filter to that day only
             const latestDay = sleepPeriodsData.data.reduce((max, s) => s.day > max ? s.day : max, '');
             const allPeriods = sleepPeriodsData.data.filter(s => s.day === latestDay);
+            console.log('DEBUG sleepData.day:', sleepData?.day);
+            console.log('DEBUG latestDay:', latestDay);
+            console.log('DEBUG allPeriods:', allPeriods.map(s => ({ day: s.day, type: s.type, total_sleep_duration: s.total_sleep_duration, time_in_bed: s.time_in_bed })));
+            console.log('DEBUG dailySleepData last entry:', JSON.stringify(sleepData));
 
             // Sum total sleep across all periods for the day
             const totalSleepSecs = allPeriods.reduce((sum, s) => sum + (s.total_sleep_duration || 0), 0);
