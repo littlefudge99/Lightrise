@@ -289,9 +289,10 @@ function renderSleepStages() {
     const bedtimeStart = new Date(sleepPeriods.bedtime_start);
     const n = stages.length;
 
-    // Fixed viewBox — CSS controls actual rendered height via .hypno-wrapper
-    const W = 800, H = 500;
-    const mTop = 20, mRight = 16, mBottom = 56, mLeft = 64;
+    // Use actual rendered pixels — no viewBox scaling, no distortion
+    const W = container.clientWidth || 600;
+    const H = window.innerWidth <= 768 ? 220 : 360;
+    const mTop = 20, mRight = 16, mBottom = 44, mLeft = 60;
     const plotW = W - mLeft - mRight;
     const plotH = H - mTop - mBottom;
     const xStep = plotW / n;
@@ -344,14 +345,14 @@ function renderSleepStages() {
 
     container.innerHTML = `
         <div class="hypno-wrapper" style="position:relative;user-select:none;">
-            <svg id="hypnogram" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+            <svg id="hypnogram" width="${W}" height="${H}" style="display:block;overflow:visible;">
                 ${yLabels.map(l => `
                     <line x1="${mLeft}" y1="${l.y}" x2="${W - mRight}" y2="${l.y}" stroke="#e2e8f0" stroke-width="1"/>
-                    <text x="${mLeft - 8}" y="${l.y + 4}" text-anchor="end" font-size="15" fill="#64748b">${l.label}</text>
+                    <text x="${mLeft - 8}" y="${l.y + 4}" text-anchor="end" font-size="12" fill="#64748b">${l.label}</text>
                 `).join('')}
                 ${xLabels.map(l => `
                     <line x1="${l.x}" y1="${mTop}" x2="${l.x}" y2="${H - mBottom}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3"/>
-                    <text x="${l.x}" y="${H - mBottom + 20}" text-anchor="middle" font-size="14" fill="#94a3b8">${l.label}</text>
+                    <text x="${l.x}" y="${H - mBottom + 16}" text-anchor="middle" font-size="11" fill="#94a3b8">${l.label}</text>
                 `).join('')}
                 ${segmentsSVG}
                 <line id="h-line" x1="0" y1="${mTop}" x2="0" y2="${H - mBottom}" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" visibility="hidden"/>
