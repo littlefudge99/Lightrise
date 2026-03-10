@@ -308,6 +308,24 @@ body {
     margin-top: 20px;
 }
 
+.hypno-wrapper {
+    width: 100%;
+    height: 360px;
+}
+
+.hypno-wrapper svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+}
+
+@media (max-width: 768px) {
+    .hypno-wrapper {
+        height: 220px;
+    }
+}
+
 .timeline-labels {
     display: flex;
     justify-content: space-between;
