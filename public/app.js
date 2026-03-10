@@ -289,9 +289,12 @@ function renderSleepStages() {
     const bedtimeStart = new Date(sleepPeriods.bedtime_start);
     const n = stages.length;
 
-    // SVG layout
-    const W = 800, H = 380;
-    const mTop = 24, mRight = 16, mBottom = 52, mLeft = 64;
+    // SVG layout — adapt ratio based on actual container width
+    const containerWidth = container.clientWidth || 600;
+    const isMobile = containerWidth < 520;
+    const W = isMobile ? 420 : 800;
+    const H = isMobile ? 520 : 400;
+    const mTop = 20, mRight = isMobile ? 12 : 16, mBottom = isMobile ? 56 : 52, mLeft = isMobile ? 52 : 64;
     const plotW = W - mLeft - mRight;
     const plotH = H - mTop - mBottom;
     const xStep = plotW / n;
@@ -344,14 +347,14 @@ function renderSleepStages() {
 
     container.innerHTML = `
         <div style="position:relative;user-select:none;overflow:visible;">
-            <svg id="hypnogram" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-height:260px;display:block;overflow:visible;">
+            <svg id="hypnogram" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible;">
                 ${yLabels.map(l => `
                     <line x1="${mLeft}" y1="${l.y}" x2="${W - mRight}" y2="${l.y}" stroke="#e2e8f0" stroke-width="1"/>
-                    <text x="${mLeft - 8}" y="${l.y + 4}" text-anchor="end" font-size="14" fill="#64748b">${l.label}</text>
+                    <text x="${mLeft - 8}" y="${l.y + 4}" text-anchor="end" font-size="${isMobile ? 16 : 14}" fill="#64748b">${l.label}</text>
                 `).join('')}
                 ${xLabels.map(l => `
                     <line x1="${l.x}" y1="${mTop}" x2="${l.x}" y2="${H - mBottom}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3,3"/>
-                    <text x="${l.x}" y="${H - mBottom + 18}" text-anchor="middle" font-size="13" fill="#94a3b8">${l.label}</text>
+                    <text x="${l.x}" y="${H - mBottom + 18}" text-anchor="middle" font-size="${isMobile ? 14 : 13}" fill="#94a3b8">${l.label}</text>
                 `).join('')}
                 ${segmentsSVG}
                 <line id="h-line" x1="0" y1="${mTop}" x2="0" y2="${H - mBottom}" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" visibility="hidden"/>
